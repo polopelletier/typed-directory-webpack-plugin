@@ -1,7 +1,3 @@
 language: node_js
 node_js:
   - "4.3.0"
-before_script:
-  - whoami
-  - ls -l test
-  - ls -l test/fixtures
