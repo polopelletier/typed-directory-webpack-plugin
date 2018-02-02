@@ -1,0 +1,18 @@
+{
+	"compilerOptions": {
+		"outDir": "./test/build",
+		"noImplicitAny": true,
+		"module": "commonjs",
+        "target": "es6",
+	},
+	"files": [
+        "./test/fixtures/entry.ts"
+    ],
+    "include": [
+        "**/fixtures/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "**/expected/**/*"
+    ]
+}
