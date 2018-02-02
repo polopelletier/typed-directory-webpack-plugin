@@ -36,10 +36,14 @@ const NEW_FILE_CONTENT = 	'import Animal from "../../Animal";' + '\n' +
 							'export default new Animal("Elephant", "Pawoo!");';
 
 const WATCH_DELAY = 500;
+const WATCH_OPTIONS = {
+
+	aggregateTimeout: WATCH_DELAY
+};
+
+var watcher = null;
 
 describe("TypedDirectoryWebpackPlugin", function() {
-
-	var compiler, watcher = null;
 
 	function reset(){
 		for(var i = 0; i < OUTPUTS.length; i++){
@@ -63,23 +67,11 @@ describe("TypedDirectoryWebpackPlugin", function() {
 		}
 	}
 
-	beforeEach(reset)
+	beforeEach(reset);
 	afterEach(function(done){
-		this.timeout(10 * 1000);
-
 		reset();
 
-		if(watcher){
-			watcher.invalidate();
-			watcher.close(function(){
-				console.log("Reset: watcher closed");
-				watcher = null;
-				done();
-			});
-
-		}else{
-			setTimeout(done, 10);
-		}
+		unwatch(done);
 	});
 
 	it("Can be instanciated", function(){
@@ -89,19 +81,12 @@ describe("TypedDirectoryWebpackPlugin", function() {
 		assert.isObject(instance);
 
 		assert.isArray(instance.config);
-		assert.isObject(instance.watchIgnorePlugin);
-		assert.isArray(instance.watchIgnorePlugin.paths);
-	});
-
-	it("Exclude the output files", function(){
-		const instance = new TypedDirectoryWebpackPlugin(CONFIG);
-		assert.deepEqual(instance.watchIgnorePlugin.paths, OUTPUTS);
 	});
 
 	it("Can compile", function(done){
 		this.timeout(10 * 1000);
 
-		compiler = createCompiler();
+		const compiler = createCompiler();
 
 		compiler.run(function(err, stats) {
 			if (err) {
@@ -123,78 +108,45 @@ describe("TypedDirectoryWebpackPlugin", function() {
 	it("Can watch", function(done) {
 		this.timeout(10 * 1000);
 
-		var hasWatch = false;
-
-		compiler = createCompiler(new WatchCallbackPlugin(
-			function(){
-				hasWatch = true
-			}, 
-			function(){
-				if(hasWatch){
-					// TODO: Assert it is expected #2
-
-					done();
-				}else{
-					done("Watch callback wasn't called");
-				}
-			}));
-
-		watcher = compiler.watch(WATCH_DELAY, function (err) {
-			if (err) return done(err);
-			
-			// Adding a new file should trigger watch-run
-			fs.writeFileSync(NEW_FILE_PATH, NEW_FILE_CONTENT);
-		});
-	});
-
-	it("Does not trigger a new compilation if watch ignored file is modified", function(done){
-		this.timeout(30 * 1000);
-
-		var hasWatch, complete = false;
+		var complete = false;
 		var isWatchRun = false;
 
-		compiler = createCompiler(new WatchCallbackPlugin(
-			function(){
-				if(isWatchRun){
-					hasWatch = true;					
-				}
-			},
-			function(){
-				if(isWatchRun && !complete){
-					complete = true;
-					done("Should not have trigerred a new compilation");
-				}
-			}));
+		function onComplete(err){
+			if(!complete){
+				complete = true;
+				unwatch(done, err);
+			}
+		}
 
-		compiler.run(function(err, stats){
-			if (err) {
-				return done(err);
-			}else if(stats.hasErrors()){
-				const info = stats.toJson();
-				return done(info.errors);
+		function onCompilationDone(){
+			const i = isWatchRun ? 2 : 1;
+
+			try {
+				compareOutput(CONFIG[0].output, i + "/animals.ts");
+				compareOutput(CONFIG[1].output, i + "/classes.ts");
+
+				compareBuild(i);
+			}catch(e){
+				onComplete(e);
 			}
 
-			watcher = compiler.watch(WATCH_DELAY, function (err) {
-				if (err) return done(err);
-				
-				// Adding a new file should trigger watch-run
-				const previous = fs.readFileSync(OUTPUTS[0]).toString();
-				const next = previous.split("\n")
-					.splice(0, 0, "// Some new comment")
-					.join("\n");
+			if(isWatchRun){
+				onComplete();					
+			}
+		}
 
+		const compiler = createCompiler(new CompilationDoneCallbackPlugin(onCompilationDone));
+
+		watcher = compiler.watch(WATCH_OPTIONS, function(err){
+			if(err) return onComplete(err);
+
+			try {
 				isWatchRun = true;
-				fs.writeFileSync(OUTPUTS[0], next);
-			});
-
-			setTimeout(function(){
-				if(!hasWatch){
-					complete = true;
-					done();
-				}
-			}, WATCH_DELAY * 2);
+				fs.writeFileSync(NEW_FILE_PATH, NEW_FILE_CONTENT);
+			}catch(e){
+				onComplete(e);
+			}
 		});
-
 	});
 });
 
@@ -202,7 +154,8 @@ function createCompiler(){
 	const extraPlugins = Array.prototype.slice.apply(arguments);
 
 	return webpack({
-		entry: "./test/fixtures/entry.ts",
+		context: path.resolve(__dirname, "fixtures"),
+		entry: "./entry.ts",
 		output: {
 			path: BUILD_PATH,
 			filename: BUILD_FILE,
@@ -211,9 +164,7 @@ function createCompiler(){
 		module: {
 			rules: [{
 				test: /\.ts$/,
-				loader: "awesome-typescript-loader",
-				exclude: /expected/,
-				include: /fixtures/
+				loader: "awesome-typescript-loader"
 			}]
 		},
 		resolve: {
@@ -242,7 +193,7 @@ function compareOutput(providedFilename, expectedId){
 }
 
 
-const CHUNK_NAME_FORMAT = "  \\!\\*\\*\\* \\.\\/test\\/fixtures\\/([a-zA-Z\\/]+\\.[a-z]+) \\*\\*\\*\\!";
+const CHUNK_NAME_FORMAT = "  \\!\\*\\*\\* \\./([a-zA-Z\\/]+\\.[a-z]+) \\*\\*\\*\\!";
 const CHUNK_NAME_ALL = new RegExp(CHUNK_NAME_FORMAT, "g");
 const CHUNK_NAME_SINGLE = new RegExp(CHUNK_NAME_FORMAT);
 
@@ -251,13 +202,11 @@ function trimBuildComment(str){
 }
 
 function compareBuild(expectedId){
-	const providedFilename = path.resolve(BUILD_PATH, BUILD_FILE);
-	const providedContent = fs.readFileSync(providedFilename).toString();
+	const providedContent = fs.readFileSync(BUILD_FULL_PATH).toString();
 	const provided = providedContent.match(CHUNK_NAME_ALL)
 		.map(trimBuildComment);
 
-	const expectedFilename = path.resolve(__dirname, 
-			"expected", expectedId.toString(), BUILD_FILE);
+	const expectedFilename = path.resolve(__dirname, "expected", expectedId.toString(), BUILD_FILE);
 	const expectedContent = fs.readFileSync(expectedFilename).toString();
 	const expected = expectedContent.match(CHUNK_NAME_ALL)
 		.map(trimBuildComment);
@@ -265,19 +214,30 @@ function compareBuild(expectedId){
 	assert.deepEqual(provided.sort(), expected.sort());
 }
 
-function WatchCallbackPlugin(watchRun, done){
-	this.watchRun = watchRun;
+function unwatch(done, err){
+	if(watcher){
+		watcher.invalidate();
+		watcher.close(function(){
+			console.log("Watcher closed");
+			watcher = null;
+			done(err);
+		});
+
+	}else{
+		setTimeout(function(){
+			done(err);
+		}, 10);
+	}
+}
+
+function CompilationDoneCallbackPlugin(done){
 	this.done = done;
 }
 
-WatchCallbackPlugin.prototype.apply = function(compiler){
+CompilationDoneCallbackPlugin.prototype.apply = function(compiler){
 	const self = this;
-	compiler.plugin("watch-run", function(compiler, callback){
-		self.watchRun();
-		callback();
-	});
 
 	compiler.plugin("done", function(){
 		self.done();
 	});
-}
+};
