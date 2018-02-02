@@ -84,7 +84,7 @@ describe("TypedDirectoryWebpackPlugin", function() {
 	});
 
 	it("Can compile", function(done){
-		this.timeout(10 * 1000);
+		this.timeout(30 * 1000);
 
 		const compiler = createCompiler();
 
@@ -106,7 +106,7 @@ describe("TypedDirectoryWebpackPlugin", function() {
 	});
 
 	it("Can watch", function(done) {
-		this.timeout(10 * 1000);
+		this.timeout(30 * 1000);
 
 		var complete = false;
 		var isWatchRun = false;
@@ -186,7 +186,7 @@ function trimHeader(file){
 function compareOutput(providedFilename, expectedId){
 	const provided = fs.readFileSync(providedFilename).toString();
 
-	const expectedFilename = path.resolve(__dirname, "expected", expectedId + ".out");
+	const expectedFilename = path.resolve(__dirname, "expected", expectedId);
 	const expected = fs.readFileSync(expectedFilename).toString();
 
 	assert.equal(trimHeader(provided), trimHeader(expected));
