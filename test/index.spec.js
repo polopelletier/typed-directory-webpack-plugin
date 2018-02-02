@@ -48,31 +48,31 @@ describe("TypedDirectoryWebpackPlugin", function() {
 	function reset(){
 		for(var i = 0; i < OUTPUTS.length; i++){
 			try {
-				console.log("clear output", i, OUTPUTS[i]);
 				fs.unlinkSync(OUTPUTS[i]);
 			}catch(e){
-				console.error(e.message);
-			}
+
+			}			
 		}
 
 		try {
 			fs.unlinkSync(BUILD_FULL_PATH);
 		}catch(e){
-			console.error(e.message);
+
 		}
 
 		try {
 			fs.unlinkSync(NEW_FILE_PATH);
 		}catch(e){
-			console.error(e.message);
+
 		}
 	}
 
 	beforeEach(reset);
 	afterEach(function(done){
-		reset();
-
-		unwatch(done);
+		unwatch(function(err){
+			reset();
+			done(err);
+		});
 	});
 
 	it("Can be instanciated", function(){

@@ -8,7 +8,8 @@
   },
   "scripts": {
     "coverage": "NODE_ENV=test istanbul cover _mocha 'test/**/*.spec.js' -- -r 'test/bootstrap.js'",
-    "test": "NODE_ENV=test mocha 'test/**/*.spec.js' -r 'test/bootstrap.js'"
+    "test": "NODE_ENV=test mocha 'test/**/*.spec.js' -r 'test/bootstrap.js'",
+    "test:debug": "mocha 'test/**/*.spec.js' -r 'test/bootstrap.js'"
   },
   "repository": {
     "type": "git",
@@ -33,6 +34,6 @@
     "webpack": "^3.3.0"
   },
   "dependencies": {
-    "typed-directory": "^1.0.1"
+    "typed-directory": "^1.0.3"
   }
 }
