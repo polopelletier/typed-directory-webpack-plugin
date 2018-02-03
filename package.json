@@ -8,6 +8,7 @@
   },
   "scripts": {
     "coverage": "NODE_ENV=test istanbul cover _mocha 'test/**/*.spec.js' -- -r 'test/bootstrap.js'",
+    "lint": "eslint src/**/*.js test/**/*.js test/**/*.spec.js",
     "test": "NODE_ENV=test mocha 'test/**/*.spec.js' -r 'test/bootstrap.js'",
     "test:debug": "mocha 'test/**/*.spec.js' -r 'test/bootstrap.js'"
   },
@@ -28,6 +29,7 @@
   "devDependencies": {
     "awesome-typescript-loader": "^3.4.1",
     "chai": "^4.1.2",
+    "eslint": "^4.16.0",
     "istanbul": "^0.4.5",
     "mocha": "^5.0.0",
     "typescript": "^2.7.1",

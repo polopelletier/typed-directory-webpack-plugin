@@ -31,9 +31,12 @@ for(var i = 0; i < CONFIG.length; i++){
 }
 
 const NEW_FILE_PATH = path.resolve(FIXTURES_DIR, "animals/content/zoo/elephant.ts");
+
+/* eslint-disable */
 const NEW_FILE_CONTENT = 	'import Animal from "../../Animal";' + '\n' +
 							'' + '\n' +
 							'export default new Animal("Elephant", "Pawoo!");';
+/* eslint-enable */
 
 const WATCH_DELAY = 500;
 const WATCH_OPTIONS = {
@@ -50,20 +53,20 @@ describe("TypedDirectoryWebpackPlugin", function() {
 			try {
 				fs.unlinkSync(OUTPUTS[i]);
 			}catch(e){
-
+				// Might not exist
 			}			
 		}
 
 		try {
 			fs.unlinkSync(BUILD_FULL_PATH);
 		}catch(e){
-
+			// Might not exist
 		}
 
 		try {
 			fs.unlinkSync(NEW_FILE_PATH);
 		}catch(e){
-
+			// Might not exist
 		}
 	}
 
