@@ -1,6 +1,6 @@
 {
   "name": "typed-directory-webpack-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Webpack plugin used to integrate typed-directory module",
   "main": "src/index.js",
   "engines": {
@@ -36,6 +36,6 @@
     "webpack": "^3.3.0"
   },
   "dependencies": {
-    "typed-directory": "^1.0.3"
+    "typed-directory": "^1.0.5"
   }
 }
